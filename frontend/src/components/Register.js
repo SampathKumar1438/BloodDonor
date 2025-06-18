@@ -12,12 +12,12 @@ function Register() {
     latitude: null,
     longitude: null
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [geoStatus, setGeoStatus] = useState('');
-  
+
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   const handleChange = (e) => {
@@ -27,15 +27,14 @@ function Register() {
       [name]: value
     }));
   };
-  
+
   const getLocation = () => {
     setGeoStatus('Fetching location...');
-    
     if (!navigator.geolocation) {
       setGeoStatus('Geolocation is not supported by your browser');
       return;
     }
-    
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setFormData(prevData => ({
@@ -49,26 +48,22 @@ function Register() {
         setGeoStatus('Unable to retrieve your location');
       }
     );
-  };    const handleSubmit = async (e) => {
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccess(false);
-    
-    console.log('Submitting form data:', formData);
-      try {
-      // Use environment variable for API URL
+
+    try {
       const apiUrl = `${process.env.REACT_APP_API_URL}/register`;
-      console.log('Making API request to:', apiUrl);
-      
       const response = await axios.post(apiUrl, formData, {
         headers: {
           'Content-Type': 'application/json'
         }
       });
-      
-      console.log('API response:', response.data);
-      
+
       setSuccess(true);
       setFormData({
         name: '',
@@ -81,33 +76,23 @@ function Register() {
       });
       setGeoStatus('');
     } catch (err) {
-      console.error('Registration error:', err);
-      setError(err.response?.data?.error || `Error: ${err.message}`);
+      setError(err.response?.data?.error || 'An error occurred.');
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
     <Container>
       <Row className="justify-content-center">
         <Col md={8} lg={6}>
           <Card className="shadow-sm form-container">
             <Card.Body className="p-4">
-              <h2 className="text-center mb-4 form-title">Register as a Blood Donor</h2>
-              
-              {success && (
-                <Alert variant="success">
-                  Registration successful! Thank you for becoming a donor.
-                </Alert>
-              )}
-              
-              {error && (
-                <Alert variant="danger">
-                  {error}
-                </Alert>
-              )}
-              
+              <h2 className="text-center mb-4">Register as a Blood Donor</h2>
+
+              {success && <Alert variant="success">Registration successful!</Alert>}
+              {error && <Alert variant="danger">{error}</Alert>}
+
               <Form onSubmit={handleSubmit}>
                 <Form.Group className="mb-3">
                   <Form.Label>Full Name</Form.Label>
@@ -119,7 +104,7 @@ function Register() {
                     required
                   />
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
                   <Form.Label>Email Address</Form.Label>
                   <Form.Control
@@ -130,7 +115,7 @@ function Register() {
                     required
                   />
                 </Form.Group>
-                
+
                 <Form.Group className="mb-3">
                   <Form.Label>Phone Number</Form.Label>
                   <Form.Control
@@ -141,7 +126,7 @@ function Register() {
                     required
                   />
                 </Form.Group>
-                
+
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
@@ -154,9 +139,7 @@ function Register() {
                       >
                         <option value="">Select Blood Group</option>
                         {bloodGroups.map(group => (
-                          <option key={group} value={group}>
-                            {group}
-                          </option>
+                          <option key={group} value={group}>{group}</option>
                         ))}
                       </Form.Select>
                     </Form.Group>
@@ -174,7 +157,7 @@ function Register() {
                     </Form.Group>
                   </Col>
                 </Row>
-                
+
                 <Form.Group className="mb-4">
                   <div className="d-flex justify-content-between align-items-center">
                     <Form.Label>Location (Optional)</Form.Label>
@@ -187,27 +170,17 @@ function Register() {
                       Get My Location
                     </Button>
                   </div>
-                  
-                  {geoStatus && (
-                    <Alert variant="info" className="mt-2 py-1 px-2">
-                      {geoStatus}
-                    </Alert>
-                  )}
-                  
+                  {geoStatus && <Alert variant="info" className="mt-2">{geoStatus}</Alert>}
                   {formData.latitude && formData.longitude && (
                     <div className="text-muted small mt-2">
-                      Coordinates captured: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                      Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
                     </div>
                   )}
                 </Form.Group>
-                
+
                 <div className="d-grid">
-                  <Button 
-                    variant="danger" 
-                    type="submit"
-                    disabled={loading}
-                  >
-                    {loading ? 'Registering...' : 'Register as Donor'}
+                  <Button variant="danger" type="submit" disabled={loading}>
+                    {loading ? 'Registering...' : 'Register'}
                   </Button>
                 </div>
               </Form>
