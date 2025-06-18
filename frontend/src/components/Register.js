@@ -56,10 +56,9 @@ function Register() {
     setSuccess(false);
     
     console.log('Submitting form data:', formData);
-    
-    try {
-      // Use the direct backend URL since proxy isn't working
-      const apiUrl = 'http://localhost:5001/api/register';
+      try {
+      // Use environment variable for API URL
+      const apiUrl = `${process.env.REACT_APP_API_URL}/register`;
       console.log('Making API request to:', apiUrl);
       
       const response = await axios.post(apiUrl, formData, {

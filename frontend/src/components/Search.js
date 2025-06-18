@@ -56,8 +56,7 @@ function Search() {
     
     console.log('Performing basic search with:', formData);
     
-    try {
-      const apiUrl = 'http://localhost:5001/api/donors';
+    try {      const apiUrl = `${process.env.REACT_APP_API_URL}/donors`;
       console.log('Making API request to:', apiUrl);
       
       const response = await axios.get(apiUrl, {
@@ -89,8 +88,7 @@ function Search() {
     
     console.log('Performing geo search with:', formData);
     
-    try {
-      const apiUrl = 'http://localhost:5001/api/donors/nearby';
+    try {      const apiUrl = `${process.env.REACT_APP_API_URL}/donors/nearby`;
       console.log('Making API request to:', apiUrl);
       
       const response = await axios.get(apiUrl, {

@@ -14,7 +14,8 @@ CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
 # Database configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(basedir, "blood_donor_fixed.db")}'
+database_url = os.environ.get('DATABASE_URL', f'sqlite:///{os.path.join(basedir, "blood_donor.db")}')
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Create db instance
@@ -199,8 +200,14 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 def health_check():
     return jsonify({"status": "ok", "message": "Blood Donor API is running"})
 
+# Add a root route for simple health check
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({"message": "Blood Donor API root. Use /api endpoints for functionality."})
+
 if __name__ == '__main__':
-    # Use a different port to avoid conflicts
-    port = 5001
+    # Use a different port to avoid conflicts in development
+    port = int(os.environ.get('PORT', 5001))
+    debug = os.environ.get('FLASK_ENV', 'development') == 'development'
     print(f"Starting server on port {port}...")
-    app.run(debug=True, port=port)
+    app.run(debug=debug, host='0.0.0.0', port=port)
