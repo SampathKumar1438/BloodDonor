@@ -1,0 +1,113 @@
+/* Blood Animation CSS */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes flow {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes heartbeat {
+  0% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.03);
+  }
+  30% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.03);
+  }
+  60% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes glowing {
+  0% {
+    box-shadow: 0 0 5px rgba(204, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(204, 0, 0, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(204, 0, 0, 0.5);
+  }
+}
+
+.heart-animation-container {
+  animation: float 6s infinite ease-in-out;
+}
+
+.heart-animation-container:hover {
+  animation: heartbeat 1.5s infinite;
+}
+
+.blood-bag {
+  animation: pulse 3s infinite ease-in-out;
+}
+
+.blood-drop {
+  animation: flow 2s infinite ease-in-out;
+}
+
+.heart-icon {
+  animation: heartbeat 1.5s infinite;
+  color: #cc0000;
+  font-size: 2.5rem;
+  display: inline-block;
+  margin-bottom: 15px;
+}
+
+.donation-container-wrapper {
+  overflow: hidden;
+  border-radius: 15px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  transition: all 0.3s ease-in-out;
+}
+
+.donation-container-wrapper:hover {
+  box-shadow: 0 8px 25px rgba(204, 0, 0, 0.2);
+}
+
+.donation-content-side {
+  background: linear-gradient(135deg, #ffffff, #f5f5f5);
+  border-radius: 15px 0 0 15px;
+}

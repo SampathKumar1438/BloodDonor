@@ -1,0 +1,57 @@
+{
+  "version": "2.0.0",
+  "tasks": [    {
+      "label": "Install Backend Dependencies",
+      "type": "shell",
+      "command": "cd backend && pip install flask flask-cors flask-sqlalchemy sqlalchemy python-dotenv",
+      "group": "build",
+      "problemMatcher": []
+    },    {
+      "label": "Run Flask Backend",
+      "type": "shell",
+      "command": "cd backend && s:/Projects/blooddonor/.venv/Scripts/python.exe app_fixed.py",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Seed Database",
+      "type": "shell",
+      "command": "cd backend && s:/Projects/blooddonor/.venv/Scripts/python.exe seed_new.py",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Install Frontend Dependencies",
+      "type": "shell",
+      "command": "cd frontend && npm install",
+      "group": "build",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run React Frontend",
+      "type": "shell",
+      "command": "cd frontend && npm start",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Setup Project",
+      "dependsOn": ["Install Backend Dependencies", "Install Frontend Dependencies", "Seed Database"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run Full Stack App",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Run Flask Backend", "Run React Frontend"],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "problemMatcher": []
+    }
+  ]
+}
