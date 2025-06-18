@@ -30,18 +30,18 @@ class User(db.Model):
     email = db.Column(db.String(100), nullable=False, unique=True)
     phone = db.Column(db.String(20), nullable=False)
     blood_group = db.Column(db.String(10), nullable=False)
-    city = db.Column(db.String(100), nullable=False)
+    District = db.Column(db.String(100), nullable=False)
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
 
-    def __init__(self, name, email, phone, blood_group, city, latitude=None, longitude=None):
+    def __init__(self, name, email, phone, blood_group, District, latitude=None, longitude=None):
         self.name = name
         self.email = email
         self.phone = phone
         self.blood_group = blood_group
-        self.city = city
+        self.District = District
         self.latitude = latitude
         self.longitude = longitude
 
@@ -52,7 +52,7 @@ class User(db.Model):
             'email': self.email,
             'phone': self.phone,
             'blood_group': self.blood_group,
-            'city': self.city,
+            'District': self.District,
             'latitude': self.latitude,
             'longitude': self.longitude,
             'created_at': self.created_at.isoformat() if self.created_at else None
@@ -80,10 +80,20 @@ with app.app_context():
 def register_user():
     data = request.get_json()
     print(f"[REGISTER] Received: {data}")
-
-    required = ['name', 'email', 'phone', 'bloodGroup', 'city']
+    
+    required = ['name', 'email', 'phone', 'bloodGroup', 'District', 'latitude', 'longitude']
     for field in required:
-        if not data.get(field):
+        if field in ['latitude', 'longitude']:
+            if field not in data or data.get(field) is None:
+                return jsonify({'error': f"Location coordinates are required. Please use the 'Get My Location' button."}), 400
+        elif field == 'District':
+            # District is sent from frontend but might be empty if detection failed
+            if field not in data:
+                return jsonify({'error': f"Missing required field: {field}"}), 400
+            # If District is empty, we'll use a default value
+            if not data.get(field):
+                data['District'] = "Unknown"
+        elif not data.get(field):
             return jsonify({'error': f"Missing required field: {field}"}), 400
 
     if User.query.filter_by(email=data['email']).first():
@@ -94,7 +104,7 @@ def register_user():
         email=data['email'],
         phone=data['phone'],
         blood_group=data['bloodGroup'],
-        city=data['city'],
+        District=data['District'],
         latitude=data.get('latitude'),
         longitude=data.get('longitude')
     )
@@ -111,13 +121,13 @@ def register_user():
 @app.route('/api/donors', methods=['GET'])
 def get_donors():
     blood_group = request.args.get('bloodGroup')
-    city = request.args.get('city')
+    District = request.args.get('District')
 
     query = User.query
     if blood_group:
         query = query.filter(User.blood_group == blood_group)
-    if city:
-        query = query.filter(User.city.ilike(city))  # Case-insensitive match
+    if District:
+        query = query.filter(User.District.ilike(District))  # Case-insensitive match
 
     donors = query.all()
     return jsonify([user.to_dict() for user in donors]), 200

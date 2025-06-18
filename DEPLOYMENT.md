@@ -1,6 +1,6 @@
 # Blood Donor Application
 
-A full-stack application to register blood donors and search for donors by blood group, city, or location.
+A full-stack application to register blood donors and search for donors by blood group, District, or location.
 
 ## Project Structure
 

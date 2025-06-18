@@ -6,7 +6,7 @@ function Search() {
   const [searchType, setSearchType] = useState('basic');
   const [formData, setFormData] = useState({
     bloodGroup: '',
-    city: '',
+    District: '',
     latitude: null,
     longitude: null,
     radius: 10
@@ -27,7 +27,6 @@ function Search() {
       [name]: name === "radius" ? Number(value) : value
     }));
   };
-
   const getLocation = () => {
     setGeoStatus('Fetching location...');
     if (!navigator.geolocation) {
@@ -35,18 +34,43 @@ function Search() {
       return;
     }
 
+    const geoOptions = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    };
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const { latitude, longitude } = position.coords;
         setFormData(prev => ({
           ...prev,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          latitude,
+          longitude
         }));
         setGeoStatus('Location fetched successfully');
       },
-      () => {
-        setGeoStatus('Unable to retrieve your location');
-      }
+      (error) => {
+        console.error('Geolocation error:', error);
+        let errorMessage = 'Unable to retrieve your location. ';
+        
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Please allow location access.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out.';
+            break;
+          default:
+            errorMessage += 'An unknown error occurred.';
+        }
+        
+        setGeoStatus(errorMessage);
+      },
+      geoOptions
     );
   };
 
@@ -61,7 +85,7 @@ function Search() {
       const response = await axios.get(apiUrl, {
         params: {
           bloodGroup: formData.bloodGroup,
-          city: formData.city
+          District: formData.District
         }
       });
       setDonors(response.data);
@@ -120,7 +144,7 @@ function Search() {
               <h2 className="mb-4 form-title">Find Blood Donors</h2>
 
               <Tabs activeKey={searchType} onSelect={handleTabChange} className="mb-4">
-                <Tab eventKey="basic" title="By City">
+                <Tab eventKey="basic" title="By Location">
                   <Form onSubmit={handleBasicSearch}>
                     <Form.Group className="mb-3">
                       <Form.Label>Blood Group</Form.Label>
@@ -133,11 +157,11 @@ function Search() {
                     </Form.Group>
 
                     <Form.Group className="mb-4">
-                      <Form.Label>City</Form.Label>
+                      <Form.Label>District</Form.Label>
                       <Form.Control
                         type="text"
-                        name="city"
-                        value={formData.city}
+                        name="District"
+                        value={formData.District}
                         onChange={handleChange}
                         required
                       />
@@ -236,7 +260,7 @@ function Search() {
                           <h5>{donor.name}</h5>
                           <Badge bg="danger" pill>{donor.blood_group}</Badge>
                         </div>
-                        <Card.Text><strong>City:</strong> {donor.city}</Card.Text>
+                        <Card.Text><strong>District:</strong> {donor.District}</Card.Text>
                         {donor.distance && <Card.Text><strong>Distance:</strong> {donor.distance} km</Card.Text>}
                         <hr className="my-2" />
                         <div className="d-flex gap-2 mt-3">

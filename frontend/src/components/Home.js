@@ -84,7 +84,7 @@ const BloodDonationAnimation = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              opacity: bloodType === type ? 1 : 0.7
+              opaDistrict: bloodType === type ? 1 : 0.7
             }}>
               <div style={{
                 width: '30px',
@@ -104,7 +104,7 @@ const BloodDonationAnimation = () => {
                 height: '4px',
                 background: '#cc0000',
                 flexGrow: 1,
-                opacity: 0.7
+                opaDistrict: 0.7
               }} />
             </div>
           ))}
@@ -119,7 +119,7 @@ const BloodDonationAnimation = () => {
           right: '0',
           top: '0',
           width: '60%', 
-          height: '100%',
+          height: '90%',
           cursor: 'pointer'
         }}
         onMouseEnter={() => setIsHovering(true)}
@@ -150,7 +150,7 @@ const BloodDonationAnimation = () => {
           <path 
             d="M100,30 C60,10 0,40 0,100 C0,150 50,180 100,190 C150,180 200,150 200,100 C200,40 140,10 100,30 Z" 
             fill="#cc0000"
-            opacity="0.9"
+            opaDistrict="0.9"
             style={{
               clipPath: `polygon(0% 0%, 100% 0%, 100% ${Math.min(50 + animationStep/2, 90)}%, 0% ${Math.min(50 + animationStep/2, 90)}%)`,
               transition: 'clip-path 0.2s ease-in'
@@ -169,7 +169,7 @@ const BloodDonationAnimation = () => {
             cy={10 + (animationStep % 20)}
             r="3"
             fill="#cc0000"
-            opacity={animationStep % 30 < 15 ? 1 : 0}
+            opaDistrict={animationStep % 30 < 15 ? 1 : 0}
           />
           
           <circle
@@ -177,7 +177,7 @@ const BloodDonationAnimation = () => {
             cy={5 + ((animationStep + 10) % 20)}
             r="2"
             fill="#cc0000"
-            opacity={(animationStep + 15) % 30 < 15 ? 1 : 0}
+            opaDistrict={(animationStep + 15) % 30 < 15 ? 1 : 0}
           />
           
           <circle
@@ -185,7 +185,7 @@ const BloodDonationAnimation = () => {
             cy={5 + ((animationStep + 20) % 20)}
             r="2"
             fill="#cc0000"
-            opacity={(animationStep + 5) % 30 < 15 ? 1 : 0}
+            opaDistrict={(animationStep + 5) % 30 < 15 ? 1 : 0}
           />
         </svg>
         
@@ -218,7 +218,7 @@ const BloodDonationAnimation = () => {
           color: 'white',
           padding: '8px 15px',
           borderRadius: '20px',
-          opacity: isHovering ? 1 : 0.8,
+          opaDistrict: isHovering ? 1 : 0.8,
           transition: 'all 0.3s ease',
           fontSize: '14px',
           zIndex: 5,

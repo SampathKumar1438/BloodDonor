@@ -5,8 +5,9 @@ A full-stack application to connect blood donors with recipients. Built with Rea
 ## Features
 
 - User Registration with blood group and location
-- Geolocation support to find nearby donors
-- Search donors by blood group and city
+- Enhanced Geolocation with multi-service district detection (HERE Maps, OpenStreetMap, Google Maps, BigDataCloud)
+- Precision district detection with priority-based algorithm
+- Search donors by blood group and District
 - Search nearby donors based on geolocation
 - Contact donors directly via phone or email
 
@@ -103,18 +104,18 @@ The frontend will start at http://localhost:3000
   "email": "john@example.com",
   "phone": "123-456-7890",
   "bloodGroup": "A+",
-  "city": "New York",
+  "District": "New York",
   "latitude": 40.7128,
   "longitude": -74.0060
 }
 ```
 
-### Search donors by blood group and city
+### Search donors by blood group and District
 - URL: `/api/donors`
 - Method: `GET`
 - Query Parameters:
   - `bloodGroup` (optional): Filter by blood group
-  - `city` (optional): Filter by city
+  - `District` (optional): Filter by District
 
 ### Search nearby donors
 - URL: `/api/donors/nearby`
@@ -128,3 +129,32 @@ The frontend will start at http://localhost:3000
 ## License
 
 This project is licensed under the MIT License.
+
+## Advanced Geolocation Features
+
+The application includes enhanced geolocation capabilities to ensure precise district detection:
+
+### Multi-Service Geocoding
+
+The application tries multiple geocoding services in sequence for the highest accuracy:
+
+1. **HERE Maps API** - Primary service for precise location data
+2. **OpenStreetMap Nominatim** - Uses multiple zoom levels (16, 14, 12, 10, 8) for optimal district detection
+3. **Google Maps Geocoding API** - Fallback with administrative boundary detection
+4. **BigDataCloud API** - Additional fallback for locality information
+
+### Intelligent District Selection
+
+A sophisticated algorithm determines the most accurate district name:
+
+- Priority-based scoring system for different location types (district, city, county, etc.)
+- Multi-result analysis from each geocoding service
+- Frequency analysis to select districts that appear in multiple sources
+- Hierarchical fallback for optimal precision
+
+### User Experience
+
+- Automatic district detection when using "Get My Location"
+- Clear feedback about the detected district
+- Option to manually correct the district if needed
+- Improved accuracy for nearby donor searches
