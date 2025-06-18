@@ -1,7 +1,4 @@
-import os
-import sys
-from app import app, db
-from models import User
+from app_new import app, db, User
 
 def seed_database():
     """Populate database with sample data"""
