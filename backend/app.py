@@ -76,6 +76,7 @@ with app.app_context():
         print("Sample users added.")
 
 # Routes
+
 @app.route('/api/register', methods=['POST'])
 def register_user():
     data = request.get_json()

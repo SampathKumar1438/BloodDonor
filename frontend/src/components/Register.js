@@ -1,6 +1,103 @@
-import React, { useState } from 'react';
-import { Form, Button, Container, Row, Col, Card, Alert } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Form, Button, Container, Row, Col, Card, Alert, ListGroup } from 'react-bootstrap';
 import axios from 'axios';
+import { indianDistricts } from '../data/indianDistricts';
+
+// Function to find the closest matching district from our standardized list
+
+const findMatchingDistrict = (detectedDistrict) => {  if (!detectedDistrict) return '';
+  // Normalize the detected district
+  const normalizedDetected = detectedDistrict.toLowerCase().trim();
+
+  // Check if there's a comma-separated address format (e.g., "District, State")
+  const parts = detectedDistrict.split(',').map(part => part.trim());
+  if (parts.length > 1) {
+    // Check if first part is a district name directly
+    const potentialDistrict = parts[0];
+    const exactMatchFirstPart = indianDistricts.find(
+      district => district.toLowerCase() === potentialDistrict.toLowerCase()
+    );
+    if (exactMatchFirstPart) return exactMatchFirstPart;
+  }
+  
+  // First try for exact matches
+  const exactMatch = indianDistricts.find(
+    district => district.toLowerCase() === normalizedDetected
+  );
+  
+  if (exactMatch) return exactMatch;
+  
+  // Try for district names that contain the detected name
+  const containsMatch = indianDistricts.find(
+    district => district.toLowerCase().includes(normalizedDetected)
+  );
+  
+  if (containsMatch) return containsMatch;
+  
+  // Try for detected names that contain district names
+  const matchingDistricts = indianDistricts.filter(
+    district => normalizedDetected.includes(district.toLowerCase())
+  );
+  
+  if (matchingDistricts.length > 0) {
+    // Sort by length (descending) to get the most specific match
+    matchingDistricts.sort((a, b) => b.length - a.length);
+    return matchingDistricts[0];
+  }
+
+  
+  // Use enhanced similarity calculation with Levenshtein distance for fuzzy matching
+  let bestMatch = '';
+  let highestScore = 0;
+  
+  // Calculate Levenshtein distance between two strings
+  const levenshteinDistance = (str1, str2) => {
+    const track = Array(str2.length + 1).fill(null).map(() => 
+      Array(str1.length + 1).fill(null));
+    
+    for (let i = 0; i <= str1.length; i += 1) {
+      track[0][i] = i;
+    }
+    
+    for (let j = 0; j <= str2.length; j += 1) {
+      track[j][0] = j;
+    }
+    
+    for (let j = 1; j <= str2.length; j += 1) {
+      for (let i = 1; i <= str1.length; i += 1) {
+        const indicator = str1[i - 1] === str2[j - 1] ? 0 : 1;
+        track[j][i] = Math.min(
+          track[j][i - 1] + 1, // deletion
+          track[j - 1][i] + 1, // insertion
+          track[j - 1][i - 1] + indicator, // substitution
+        );
+      }
+    }
+    
+    return track[str2.length][str1.length];
+  };
+  
+  // Calculate similarity score based on Levenshtein distance
+  const calculateSimilarity = (s1, s2) => {
+    const maxLen = Math.max(s1.length, s2.length);
+    if (maxLen === 0) return 1; // Both strings are empty
+    
+    const distance = levenshteinDistance(s1.toLowerCase(), s2.toLowerCase());
+    return 1 - (distance / maxLen);
+  };
+  
+  // Find best match using similarity score
+  for (const district of indianDistricts) {
+    const similarityScore = calculateSimilarity(normalizedDetected, district.toLowerCase());
+    if (similarityScore > highestScore) {
+      highestScore = similarityScore;
+      bestMatch = district;
+    }
+  }
+  
+  // Return the best match if the score is above the threshold (0.6), otherwise return detected district
+  return highestScore > 0.6 ? bestMatch : detectedDistrict;
+};
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -17,8 +114,43 @@ function Register() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [geoStatus, setGeoStatus] = useState('');
+  const [districtSuggestions, setDistrictSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+  // Handle district input change
+  useEffect(() => {
+    const searchDistrict = formData.District.trim().toLowerCase();
+    if (searchDistrict.length < 2) {
+      setDistrictSuggestions([]);
+      return;
+    }
+    
+    // Filter districts based on user input
+    const filteredDistricts = indianDistricts.filter(district => 
+      district.toLowerCase().includes(searchDistrict)
+    ).slice(0, 10); // Limit to 10 suggestions for better UI
+    
+    setDistrictSuggestions(filteredDistricts);
+    setShowSuggestions(filteredDistricts.length > 0);
+  }, [formData.District]);
+  
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Don't close if clicking on the district input field
+      if (event.target.name === "District") {
+        return;
+      }
+      setShowSuggestions(false);
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -26,7 +158,19 @@ function Register() {
       ...prevData,
       [name]: value
     }));
+    if (name === "District") {
+      setShowSuggestions(true);
+    }
   };
+
+  const handleSelectDistrict = (district) => {
+    setFormData(prevData => ({
+      ...prevData,
+      District: district
+    }));
+    setShowSuggestions(false);
+  };
+
   const getLocation = () => {
     setGeoStatus('Fetching location...');
     if (!navigator.geolocation) {
@@ -293,7 +437,8 @@ function Register() {
                     distance: 0
                   });
                 }
-              }            } catch (bdcError) {
+              }
+            } catch (bdcError) {
               console.error('BigDataCloud error:', bdcError);
             }
           }
@@ -337,22 +482,167 @@ function Register() {
               // Otherwise, use the highest priority one
               finalDistrict = districtCandidates[0].name;
             }
+              console.log('Detected district:', finalDistrict);
+              
+            // Try direct match with our district list first
+            const directMatch = indianDistricts.find(
+              district => district.toLowerCase() === finalDistrict.toLowerCase()
+            );
             
-            console.log('Final selected district:', finalDistrict);
+            if (directMatch) {
+              matchedDistrict = directMatch;
+              console.log('Direct match found with standard district list:', matchedDistrict);
+            } else {
+              // Try to get full address for better district matching
+              // eslint-disable-next-line no-unused-vars
+              let fullAddress = '';
+              
+              try {
+                // Get detailed address from OpenCage API (more reliable for Indian addresses)
+                const opencageResponse = await axios.get(
+                  `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=4d43d481d9a742eabb7a803a5a3bac64&language=en&no_annotations=1`
+                );
+                
+                console.log('OpenCage response:', opencageResponse.data);
+                
+                if (opencageResponse.data?.results?.length > 0) {
+                  const result = opencageResponse.data.results[0];
+                  // eslint-disable-next-line no-unused-vars
+                  const fullAddress = result.formatted;
+                  
+                  const components = result.components;
+                  
+                  // Extract district from components if available
+                  if (components.county || components.district || components.city_district) {
+                    const districtName = components.county || components.district || components.city_district || components.city;
+                    
+                    if (districtName) {
+                      districtCandidates.push({
+                        name: districtName,
+                        source: 'OpenCage',
+                        priority: 12, // Give highest priority to OpenCage
+                        distance: 0
+                      });
+                      
+                      finalDistrict = districtName;
+                    }
+                  }
+                }
+              } catch (opencageError) {
+                console.error('OpenCage error:', opencageError);
+              }
+              
+              // If we have a potential district name from geocoding services
+              matchedDistrict = findMatchingDistrict(finalDistrict);
+              console.log('Matched district with standardized list:', matchedDistrict);
+              
+              // If we still don't have a match, try one more service - Google Maps Geocoding API as a last resort
+              if (!matchedDistrict || matchedDistrict === finalDistrict) {
+                try {
+                  console.log("Trying Google Maps API as fallback for district...");
+                  // Using a different API key (limited usage)
+                  const googleApiUrl = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&result_type=administrative_area_level_2&key=AIzaSyBVF16SZ1h2qU8l5UlDPasmOwnavVUmWpM`;
+                  const googleResponse = await axios.get(googleApiUrl);
+                  
+                  if (googleResponse.data.results && googleResponse.data.results.length > 0) {
+                    const adminArea = googleResponse.data.results[0];
+                    
+                    // Extract district name from address components
+                    for (const component of adminArea.address_components) {
+                      if (component.types.includes('administrative_area_level_2')) {
+                        finalDistrict = component.long_name;
+                        matchedDistrict = findMatchingDistrict(finalDistrict);
+                        console.log("Google found district:", finalDistrict, "Matched:", matchedDistrict);
+                        break;
+                      }
+                    }
+                  }
+                } catch (googleError) {
+                  console.error("Google Maps API error:", googleError);
+                }
+              }
+              
+              // Make one more attempt with fuzzy matching at higher threshold
+              if (!matchedDistrict || matchedDistrict === finalDistrict) {
+                // Use Levenshtein distance with a higher threshold for better matching
+                let bestMatch = '';
+                let highestSimilarity = 0;
+                
+                for (const district of indianDistricts) {
+                  const similarity = calculateSimilarity(finalDistrict.toLowerCase(), district.toLowerCase());
+                  if (similarity > highestSimilarity) {
+                    highestSimilarity = similarity;
+                    bestMatch = district;
+                  }
+                }
+                
+                if (highestSimilarity > 0.7) { // Higher threshold for fuzzy matching
+                  matchedDistrict = bestMatch;
+                  console.log(`Fuzzy matched ${finalDistrict} to ${matchedDistrict} with score ${highestSimilarity}`);
+                }
+              }
+            }
+            
+            // Validate matchedDistrict is actually in our list
+            const isValidDistrict = indianDistricts.includes(matchedDistrict);
             
             setFormData(prevData => ({
               ...prevData,
-              District: finalDistrict,
+              District: isValidDistrict ? matchedDistrict : '',
               latitude,
               longitude
             }));
-            setGeoStatus(`Location fetched successfully: ${finalDistrict}`);
+            
+            if (isValidDistrict) {
+              setGeoStatus(`Location fetched successfully: ${matchedDistrict}`);
+            } else {
+              // Clear district and prompt user to select manually
+              setGeoStatus(`Location detected as "${finalDistrict}" but couldn't match to a standard district. Please select manually.`);
+            }
           } else {
             setGeoStatus('Location coordinates retrieved, but could not determine precise district');
+            setFormData(prevData => ({
+              ...prevData,
+              District: '',
+              latitude,
+              longitude
+            }));
           }
         } catch (error) {
           console.error('Error getting district:', error);
           setGeoStatus('Location coordinates retrieved, but could not determine district');
+        }
+        
+        // Helper function for Levenshtein similarity calculation
+        function calculateSimilarity(s1, s2) {
+          const maxLen = Math.max(s1.length, s2.length);
+          if (maxLen === 0) return 1; // Both strings are empty
+          
+          const distance = levenshteinDistance(s1, s2);
+          return 1 - (distance / maxLen);
+        }
+        
+        // Levenshtein distance calculation
+        function levenshteinDistance(str1, str2) {
+          const m = str1.length;
+          const n = str2.length;
+          const dp = Array(m+1).fill().map(() => Array(n+1).fill(0));
+          
+          for (let i = 0; i <= m; i++) dp[i][0] = i;
+          for (let j = 0; j <= n; j++) dp[0][j] = j;
+          
+          for (let i = 1; i <= m; i++) {
+            for (let j = 1; j <= n; j++) {
+              const cost = str1[i-1] === str2[j-1] ? 0 : 1;
+              dp[i][j] = Math.min(
+                dp[i-1][j] + 1,      // deletion
+                dp[i][j-1] + 1,      // insertion
+                dp[i-1][j-1] + cost  // substitution
+              );
+            }
+          }
+          
+          return dp[m][n];
         }
       },
       (error) => {
@@ -389,9 +679,7 @@ function Register() {
       setError('Please fetch your location by clicking the "Get My Location" button');
       setLoading(false);
       return;
-    }
-
-    if (!formData.District) {
+    }    if (!formData.District) {
       try {
         await getLocation();
         if (!formData.District) {
@@ -400,16 +688,17 @@ function Register() {
           return;
         }
       } catch (err) {
-        console.error('Error fetching location:', err);
+        setError('Could not determine your district. Please enter it manually before submitting.');
+        setLoading(false);
+        return;
       }
     }
 
     try {
       const apiUrl = `${process.env.REACT_APP_API_URL}/register`;
-      await axios.post(apiUrl, formData, {
-        headers: { 'Content-Type': 'application/json' }
-      });
-
+      // eslint-disable-next-line no-unused-vars
+      const response = await axios.post(apiUrl, formData);
+      
       setSuccess(true);
       setFormData({
         name: '',
@@ -422,7 +711,8 @@ function Register() {
       });
       setGeoStatus('');
     } catch (err) {
-      setError(err.response?.data?.error || 'An error occurred.');
+      console.error('Registration error:', err);
+      setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -431,49 +721,68 @@ function Register() {
   return (
     <Container>
       <Row className="justify-content-center">
-        <Col md={8} lg={6}>
-          <Card className="shadow-sm form-container">
+        <Col lg={8} md={10}>
+          <Card className="shadow-sm border-0">
             <Card.Body className="p-4">
-              <h2 className="text-center mb-4">Register as a Blood Donor</h2>
+              <h2 className="mb-4">Register as a Blood Donor</h2>
+              
+              {success && (
+                <Alert variant="success" onClose={() => setSuccess(false)} dismissible>
+                  <Alert.Heading>Registration Successful!</Alert.Heading>
+                  <p>Thank you for registering as a blood donor. Your information has been added to our database.</p>
+                </Alert>
+              )}
 
-              {success && <Alert variant="success">Registration successful!</Alert>}
-              {error && <Alert variant="danger">{error}</Alert>}
+              {error && (
+                <Alert variant="danger" onClose={() => setError('')} dismissible>
+                  <Alert.Heading>Registration Error</Alert.Heading>
+                  <p>{error}</p>
+                </Alert>
+              )}
 
               <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Full Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Full Name</Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Email Address</Form.Label>
-                  <Form.Control
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Phone Number</Form.Label>
-                  <Form.Control
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Email Address</Form.Label>
+                      <Form.Control
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
 
                 <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Phone Number</Form.Label>
+                      <Form.Control
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+
                   <Col md={6}>
                     <Form.Group className="mb-3">
                       <Form.Label>Blood Group</Form.Label>
@@ -486,13 +795,11 @@ function Register() {
                         <option value="">Select Blood Group</option>
                         {bloodGroups.map(group => (
                           <option key={group} value={group}>{group}</option>
-                        ))}
-                      </Form.Select>
+                        ))}                      </Form.Select>
                     </Form.Group>
                   </Col>
-
                   <Col md={6}>
-                    <Form.Group className="mb-3">
+                    <Form.Group className="mb-3 position-relative">
                       <Form.Label>District</Form.Label>
                       <div className="input-group">
                         <Form.Control
@@ -500,7 +807,8 @@ function Register() {
                           name="District"
                           value={formData.District}
                           onChange={handleChange}
-                          placeholder="location"
+                          onClick={(e) => e.stopPropagation()}                          placeholder="Start typing to see suggestions"
+                          autoComplete="off"
                           className={formData.latitude && !formData.District ? "border-warning" : ""}
                         />
                         {formData.District && (
@@ -508,10 +816,27 @@ function Register() {
                             variant="outline-secondary"
                             onClick={() => setFormData(prev => ({ ...prev, District: '' }))}
                           >
-                            ✕
+                            ×
                           </Button>
                         )}
                       </div>
+                      {showSuggestions && districtSuggestions.length > 0 && (
+                        <ListGroup 
+                          className="position-absolute w-100 shadow-sm mt-1" 
+                          style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}
+                        >
+                          {districtSuggestions.map((district, index) => (
+                            <ListGroup.Item
+                              key={index}
+                              action
+                              onClick={() => handleSelectDistrict(district)}
+                              className="py-2"
+                            >
+                              {district}
+                            </ListGroup.Item>
+                          ))}
+                        </ListGroup>
+                      )}
                       {formData.latitude && !formData.District && (
                         <Form.Text className="text-warning">
                           <i className="bi bi-exclamation-triangle"></i> Could not automatically detect your district. 
@@ -525,62 +850,43 @@ function Register() {
                 <Form.Group className="mb-4">
                   <div className="d-flex justify-content-between align-items-center">
                     <Form.Label>
-                      <span className="text-danger">*</span> Location
-                      <span className="ms-2 text-danger fw-bold">(Required)</span>
+                      <strong>Your Location</strong>
+                      <div className="small text-muted">
+                        This helps nearby blood recipients find you
+                      </div>
                     </Form.Label>
-                    <div>
-                      {formData.latitude && (
-                        <Button
-                          variant="outline-secondary"
-                          size="sm"
-                          className="me-2"
-                          onClick={getLocation}
-                          disabled={loading}
-                        >
-                          Try Again
-                        </Button>
-                      )}
-                      <Button
-                        variant={formData.latitude ? "success" : "primary"}
-                        onClick={getLocation}
-                        disabled={loading}
-                      >
-                        {formData.latitude ? "✓ Location Fetched" : "Get My Location"}
-                      </Button>
-                    </div>
+                    <Button
+                      variant="outline-primary"
+                      onClick={getLocation}
+                      disabled={loading}
+                      type="button"
+                    >
+                      {formData.latitude ? "Try Again" : "Get My Location"}
+                    </Button>
                   </div>
                   {geoStatus && (
-                    <Alert
-                      variant={
-                        geoStatus.includes("successfully")
-                          ? "success"
-                          : geoStatus.includes("could not determine")
-                            ? "warning"
-                            : "info"
-                      }
-                      className="mt-2"
+                    <Alert 
+                      variant={geoStatus.includes('successfully') ? 'success' : 'info'} 
+                      className="mt-2 py-2"
                     >
                       {geoStatus}
                     </Alert>
                   )}
                   {formData.latitude && formData.longitude && (
-                    <div className="text-muted small mt-2">
-                      <div>Coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}</div>
-                      {!formData.District && (
-                        <div className="text-warning mt-1">
-                          <small>
-                            <i className="bi bi-exclamation-triangle"></i> District could not be automatically determined.
-                            Please enter it manually above.
-                          </small>
-                        </div>
-                      )}
+                    <div className="text-muted small">
+                      Your coordinates: {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
                     </div>
                   )}
                 </Form.Group>
 
                 <div className="d-grid">
-                  <Button variant="danger" type="submit" disabled={loading}>
-                    {loading ? 'Registering...' : 'Register'}
+                  <Button 
+                    variant="danger" 
+                    size="lg" 
+                    type="submit"
+                    disabled={loading}
+                  >
+                    {loading ? 'Registering...' : 'Register as Donor'}
                   </Button>
                 </div>
               </Form>
