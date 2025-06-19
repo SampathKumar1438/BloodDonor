@@ -188,6 +188,7 @@ function Register() {
       async (position) => {
         const { latitude, longitude } = position.coords;
         const accuracy = position.coords.accuracy;
+        let matchedDistrict = ''; // Add declaration for matchedDistrict variable
 
         console.log(`Location accuracy: ${accuracy} meters`);
 
